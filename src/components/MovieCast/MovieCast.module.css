@@ -1,0 +1,20 @@
+.cast {
+    padding: 20px;
+  }
+  
+  .cast img {
+    width: 100px;
+    height: auto;
+    border-radius: 4px;
+  }
+  
+  .cast ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .cast li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }  
