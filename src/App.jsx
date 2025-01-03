@@ -1,7 +1,6 @@
-// src/App.jsx
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Route, Switch, NavLink } from 'react-router-dom';
-import './App.css';  // Загальні стилі для всього застосунку
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import Navigation from './components/Navigation/Navigation';
 
 const HomePage = lazy(() => import('./pages/HomePage/HomePage'));
 const MoviesPage = lazy(() => import('./pages/MoviesPage/MoviesPage'));
@@ -11,20 +10,15 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage/NotFoundPage'));
 function App() {
   return (
     <Router>
-      <div>
-        <nav>
-          <NavLink to="/">Home</NavLink>
-          <NavLink to="/movies">Movies</NavLink>
-        </nav>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Switch>
-            <Route path="/" exact component={HomePage} />
-            <Route path="/movies" exact component={MoviesPage} />
-            <Route path="/movies/:movieId" component={MovieDetailsPage} />
-            <Route component={NotFoundPage} />
-          </Switch>
-        </Suspense>
-      </div>
+      <Navigation />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Switch>
+          <Route exact path="/" component={HomePage} />
+          <Route path="/movies" component={MoviesPage} />
+          <Route path="/movies/:movieId" component={MovieDetailsPage} />
+          <Route component={NotFoundPage} />
+        </Switch>
+      </Suspense>
     </Router>
   );
 }
