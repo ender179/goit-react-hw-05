@@ -1,70 +1,116 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { useParams, Link, useLocation, Route, Routes } from 'react-router-dom';
-import axios from 'axios';
-import styles from './MovieDetailsPage.module.css';
+import { useEffect, useState, useRef } from 'react';
+import {
+  useParams,
+  Outlet,
+  useLocation,
+  Link,
+  NavLink,
+} from 'react-router-dom';
+import { fetchMovieDetails } from '../../movielist-api';
+import Loader from './../../components/Loader/Loader';
+import clsx from 'clsx';
+import css from './MovieDetailsPage.module.css';
 
-const MovieCast = lazy(() => import('../../components/MovieCast/MovieCast'));
-const MovieReviews = lazy(() => import('../../components/MovieReviews/MovieReviews'));
+const defaultImg =
+  'https://dl-media.viber.com/10/share/2/long/vibes/icon/image/0x0/95e0/5688fdffb84ff8bed4240bcf3ec5ac81ce591d9fa9558a3a968c630eaba195e0.jpg';
+
+const buildLinkClass = ({ isActive }) => {
+  return clsx(css.link, isActive && css.active);
+};
 
 const MovieDetailsPage = () => {
   const { movieId } = useParams();
-  const location = useLocation();
   const [movie, setMovie] = useState(null);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
+  const backLink = useRef(location.state?.from ?? '/movies');
 
   useEffect(() => {
-    const fetchMovieDetails = async () => {
+    const loadMovieDetails = async () => {
+      setIsLoading(true);
+
       try {
-        const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}`, {
-          headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
-        });
-        setMovie(response.data);
+        const data = await fetchMovieDetails(movieId);
+        if (!data) throw new Error('Movie not found');
+        setMovie(data);
       } catch (error) {
-        console.error('Error fetching movie details:', error);
+        setError(`Error fetching genres: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchMovieDetails();
+    loadMovieDetails();
   }, [movieId]);
 
-  if (!movie) return <p>Loading...</p>;
-
   return (
-    <div className={styles.container}>
-      <Link to={location.state?.from ?? '/movies'} className={styles.goBack}>
-        Go back
-      </Link>
-      <div className={styles.details}>
-        <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-        <div>
-          <h1>{movie.title}</h1>
-          <p>User score: {movie.vote_average * 10}%</p>
-          <h2>Overview</h2>
-          <p>{movie.overview}</p>
-          <h2>Genres</h2>
-          <p>{movie.genres.map(genre => genre.name).join(', ')}</p>
+    <div className={css.container}>
+      {isLoading && (
+        <div className={css.loading}>
+          <Loader />
         </div>
+      )}
+
+      {error && <p className={css.error}>{error}</p>}
+
+      <nav className={css.nav}>
+        <Link to={backLink.current} className={css.link_button}>
+          <button type="button" className={css.button}>
+            Go back
+          </button>
+        </Link>
+      </nav>
+
+      <div className={css.block_dscr}>
+        {movie && (
+          <div className={css.block_dscr}>
+            <img
+              src={
+                movie.poster_path
+                  ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                  : defaultImg
+              }
+              alt={movie.title || 'Movie poster'}
+              className={css.moviePoster}
+            />
+
+            <div className={css.dscr}>
+              <h2>
+                {movie.title} ({movie.release_date?.split('-')[0] || 'N/A'})
+              </h2>
+              <p>User score: {movie.vote_average || 'N/A'}</p>
+              <h3>Overview</h3>
+              <p>{movie.overview || 'No overview available.'}</p>
+              <h3>Genres</h3>
+              <p>
+                {movie.genres?.map(genre => genre.name).join(', ') ||
+                  'No genres listed.'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
-      <div className={styles.additionalInfo}>
-        <h3>Additional information</h3>
-        <ul>
-          <li>
-            <Link to={`cast`} state={location.state}>
+
+      <h3 className={css.subtitle}>Additional information</h3>
+
+      <ul className={css.list}>
+        <li>
+          <nav className={css.nav}>
+            <NavLink to="cast" className={buildLinkClass}>
               Cast
-            </Link>
-          </li>
-          <li>
-            <Link to={`reviews`} state={location.state}>
+            </NavLink>
+          </nav>
+        </li>
+        <li>
+          <nav className={css.nav}>
+            <NavLink to="reviews" className={buildLinkClass}>
               Reviews
-            </Link>
-          </li>
-        </ul>
-      </div>
-      <Suspense fallback={<p>Loading...</p>}>
-        <Routes>
-          <Route path={`cast`} element={<MovieCast movieId={movieId} />} />
-          <Route path={`reviews`} element={<MovieReviews movieId={movieId} />} />
-        </Routes>
-      </Suspense>
+            </NavLink>
+          </nav>
+        </li>
+      </ul>
+      <Outlet />
     </div>
   );
 };

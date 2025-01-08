@@ -1,43 +1,75 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import PropTypes from 'prop-types';
-import styles from './MovieCast.module.css';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import Loader from '../Loader/Loader';
+import { fetchMovieCast } from '../../movielist-api';
+import css from './MovieCast.module.css';
 
-const MovieCast = ({ movieId }) => {
-  const [cast, setCast] = useState([]);
+const defaultImg =
+  'https://dl-media.viber.com/10/share/2/long/vibes/icon/image/0x0/95e0/5688fdffb84ff8bed4240bcf3ec5ac81ce591d9fa9558a3a968c630eaba195e0.jpg';
+
+const MovieCast = () => {
+  const { movieId } = useParams();
+  const [movieCast, setMovieCast] = useState([]);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchCast = async () => {
+    if (!movieId) return;
+
+    const loadMovieCast = async () => {
+      setIsLoading(true);
+
       try {
-        const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}/credits`, {
-          headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
-        });
-        setCast(response.data.cast);
+        const data = await fetchMovieCast(movieId);
+        setMovieCast(data);
       } catch (error) {
-        console.error('Error fetching cast:', error);
+        setError(`Error fetching MovieCast: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchCast();
+    loadMovieCast();
   }, [movieId]);
 
   return (
-    <div className={styles.cast}>
-      <h2>Cast</h2>
-      <ul>
-        {cast.map(actor => (
-          <li key={actor.cast_id}>
-            <img src={`https://image.tmdb.org/t/p/w200${actor.profile_path}`} alt={actor.name} />
-            <p>{actor.name} as {actor.character}</p>
-          </li>
-        ))}
-      </ul>
+    <div className={css.container}>
+      {isLoading && (
+        <div className={css.loading}>
+          <Loader />
+        </div>
+      )}
+
+      {error && <p className={css.error}>{error}</p>}
+
+      {!isLoading && !error && !movieCast.length && (
+        <p className={css.message}>No cast information available.</p>
+      )}
+
+      {!isLoading && !error && movieCast.length > 0 && (
+        <>
+          <h3 className={css.subtitle}>Movie Cast</h3>
+          <ul className={css.castList}>
+            {movieCast.map(({ id, name, profile_path, character }) => (
+              <li key={id} className={css.castItem}>
+                <img
+                  src={
+                    profile_path
+                      ? `https://image.tmdb.org/t/p/w200${profile_path}`
+                      : defaultImg
+                  }
+                  alt={name}
+                  className={css.actorImage}
+                />
+                <p className={css.actorName}>{name}</p>
+                <p className={css.characterName}>Character: {character}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
-};
-
-MovieCast.propTypes = {
-  movieId: PropTypes.string.isRequired,
 };
 
 export default MovieCast;

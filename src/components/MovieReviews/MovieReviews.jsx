@@ -1,43 +1,62 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import PropTypes from 'prop-types';
-import styles from './MovieReviews.module.css';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import Loader from '../Loader/Loader';
+import { fetchMovieReviews } from '../../movielist-api';
+import css from './MovieReviews.module.css';
 
-const MovieReviews = ({ movieId }) => {
-  const [reviews, setReviews] = useState([]);
+const MovieReviews = () => {
+  const { movieId } = useParams();
+  const [movieReviews, setMovieReviews] = useState([]);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchReviews = async () => {
+    if (!movieId) return;
+
+    const loadMovieReviews = async () => {
+      setIsLoading(true);
       try {
-        const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}/reviews`, {
-          headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
-        });
-        setReviews(response.data.results);
+        const data = await fetchMovieReviews(movieId);
+        setMovieReviews(data);
       } catch (error) {
-        console.error('Error fetching reviews:', error);
+        setError(`Error fetching MovieCast: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchReviews();
+    loadMovieReviews();
   }, [movieId]);
 
   return (
-    <div className={styles.reviews}>
-      <h2>Reviews</h2>
-      <ul>
-        {reviews.map(review => (
-          <li key={review.id}>
-            <h3>{review.author}</h3>
-            <p>{review.content}</p>
-          </li>
-        ))}
-      </ul>
+    <div className={css.container}>
+      {isLoading && (
+        <div className={css.loading}>
+          <Loader />
+        </div>
+      )}
+
+      {error && <p className={css.error}>{error}</p>}
+
+      {!isLoading && !error && !movieReviews.length && (
+        <p className={css.message}>We do not have any reviews for this movie</p>
+      )}
+
+      {!isLoading && !error && movieReviews.length > 0 && (
+        <>
+          <h3 className={css.subtitle}>Reviews: </h3>
+          <ul className={css.reviewsList}>
+            {movieReviews.map(({ id, author, content }) => (
+              <li key={id} className={css.reviewsItem}>
+                <p className={css.author}>Author: {author}</p>
+                <p className={css.reviewsText}>{content}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
-};
-
-MovieReviews.propTypes = {
-  movieId: PropTypes.string.isRequired,
 };
 
 export default MovieReviews;
